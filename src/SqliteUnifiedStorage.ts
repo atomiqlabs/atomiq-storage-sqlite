@@ -1,37 +1,58 @@
 import {IUnifiedStorage, QueryParams, UnifiedStoredObject} from "@atomiqlabs/sdk-lib";
 import {open, Database} from "sqlite";
 import {Database as sqlite3Database} from "sqlite3";
+import {
+    UnifiedSwapStorageCompositeIndexes,
+    UnifiedSwapStorageIndexes
+} from "@atomiqlabs/sdk-lib/dist/storage/UnifiedSwapStorage";
 
-export class SqliteUnifiedStorage implements IUnifiedStorage {
+const sqliteTypes = {
+    number: "INTEGER",
+    string: "TEXT",
+    boolean: "BOOLEAN"
+}
+
+export class SqliteUnifiedStorage implements IUnifiedStorage<UnifiedSwapStorageIndexes, UnifiedSwapStorageCompositeIndexes> {
 
     readonly filename: string;
     db: Database;
+    indexedColumns: string[];
 
     constructor(filename: string) {
         this.filename = filename;
     }
 
-    async init(): Promise<void> {
+    async init(indexes: UnifiedSwapStorageIndexes, compositeIndexes: UnifiedSwapStorageCompositeIndexes): Promise<void> {
         this.db = await open({
             filename: this.filename,
             driver: sqlite3Database
-        })
+        });
+
+        const columns = [];
+        const dbIndexes = [];
+        this.indexedColumns = [];
+        indexes.forEach(val => {
+            if(val.key==="id") return;
+            this.indexedColumns.push(val.key);
+            columns.push(`
+                ${val.key} ${sqliteTypes[val.type]} ${val.nullable ? "NULL" : "NOT NULL"}
+            `);
+            dbIndexes.push(`
+                CREATE${val.unique ? " UNIQUE" : ""} INDEX IF NOT EXISTS idx_${val.key} ON swaps(${val.key});
+            `);
+        });
+        const dbCompositeIndexes = [];
+        compositeIndexes.forEach(val => {
+            dbCompositeIndexes.push(`
+                CREATE${val.unique ? " UNIQUE" : ""} INDEX IF NOT EXISTS idx_${val.keys.join("_")} ON swaps(${val.keys.join(", ")});
+            `)
+        });
+
         await this.db.exec(`
-            CREATE TABLE IF NOT EXISTS swaps (
-                id VARCHAR(255) PRIMARY KEY,
-                type INTEGER UNSIGNED NOT NULL,
-                escrowHash VARCHAR(255) NULL,
-                paymentHash VARCHAR(255) NULL,
-                initiator VARCHAR(255) NOT NULL,
-                state INTEGER NOT NULL,
-                data TEXT NOT NULL
-            );
+            CREATE TABLE IF NOT EXISTS swaps (id VARCHAR(255) PRIMARY KEY, ${columns.join(", ")}, data TEXT NOT NULL);
             
-            CREATE INDEX IF NOT EXISTS idx_type ON swaps(type);
-            CREATE INDEX IF NOT EXISTS idx_escrowHash ON swaps(escrowHash);
-            CREATE INDEX IF NOT EXISTS idx_paymentHash ON swaps(paymentHash);
-            CREATE INDEX IF NOT EXISTS idx_initiator ON swaps(initiator);
-            CREATE INDEX IF NOT EXISTS idx_state ON swaps(state);
+            ${dbIndexes.join("\n")}
+            ${dbCompositeIndexes.join("\n")}
         `);
     }
 
@@ -43,6 +64,7 @@ export class SqliteUnifiedStorage implements IUnifiedStorage {
         for(let orParams of params) {
             const andQuery: string[] = [];
             for(let andParam of orParams) {
+                if(!this.indexedColumns.includes(andParam.key)) throw new Error("Tried to query based on non-indexed column!");
                 if(Array.isArray(andParam.value)) {
                     const tags = andParam.value.map(value => {
                         const tag = "@"+andParam.key+counter.toString(10).padStart(8, "0");
@@ -86,25 +108,16 @@ export class SqliteUnifiedStorage implements IUnifiedStorage {
 
     async save(value: UnifiedStoredObject): Promise<void> {
         const stmt = await this.db.prepare(`
-            INSERT INTO swaps (id, type, escrowHash, paymentHash, initiator, state, data)
-            VALUES (@id, @type, @escrowHash, @paymentHash, @initiator, @state, @data)
-            ON CONFLICT(id) DO UPDATE SET 
-                type = @type,
-                escrowHash = @escrowHash,
-                paymentHash = @paymentHash,
-                initiator = @initiator,
-                state = @state,
-                data = @data;
+            INSERT INTO swaps (id, ${this.indexedColumns.join(", ")}, data)
+            VALUES (@id, ${this.indexedColumns.map(x => "@"+x).join(", ")}, @data)
+            ON CONFLICT(id) DO UPDATE SET ${this.indexedColumns.map(x => x+" = @"+x).join(", ")}, data = @data;
         `);
-        await stmt.run({
+        const stmtKeys: any = {
             "@id": value.id,
-            "@type": value.type,
-            "@escrowHash": value.escrowHash,
-            "@paymentHash": value.paymentHash,
-            "@initiator": value.initiator,
-            "@state": value.state,
             "@data": JSON.stringify(value),
-        });
+        };
+        this.indexedColumns.forEach(key => stmtKeys["@"+key] = value[key]);
+        await stmt.run(stmtKeys);
     }
 
     async saveAll(values: UnifiedStoredObject[]): Promise<void> {
