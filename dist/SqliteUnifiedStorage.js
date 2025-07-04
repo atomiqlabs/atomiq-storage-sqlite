@@ -51,8 +51,8 @@ class SqliteUnifiedStorage {
         for (let orParams of params) {
             const andQuery = [];
             for (let andParam of orParams) {
-                if (!this.indexedColumns.includes(andParam.key))
-                    throw new Error("Tried to query based on non-indexed column!");
+                if (!this.indexedColumns.includes(andParam.key) && andParam.key !== "id")
+                    throw new Error(`Tried to query based on non-indexed column: ${andParam.key}!`);
                 if (Array.isArray(andParam.value)) {
                     const tags = andParam.value.map(value => {
                         const tag = "@" + andParam.key + counter.toString(10).padStart(8, "0");
