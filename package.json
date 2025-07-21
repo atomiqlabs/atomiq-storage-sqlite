@@ -1,6 +1,6 @@
 {
   "name": "@atomiqlabs/storage-sqlite",
-  "version": "1.0.1",
+  "version": "3.0.0",
   "description": "SQLite storage implementation for atomiqlabs SDK",
   "main": "./dist/index.js",
   "types:": "./dist/index.d.ts",
@@ -22,8 +22,8 @@
   "author": "adambor",
   "license": "ISC",
   "dependencies": {
-    "@atomiqlabs/base": "^9.0.0",
-    "@atomiqlabs/sdk-lib": "^13.0.0",
+    "@atomiqlabs/base": "^11.0.0",
+    "@atomiqlabs/sdk-lib": "^15.0.1",
     "sqlite": "5.1.1",
     "sqlite3": "5.1.7"
   },
