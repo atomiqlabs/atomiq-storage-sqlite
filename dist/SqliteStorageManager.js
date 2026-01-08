@@ -5,6 +5,7 @@ const sqlite_1 = require("sqlite");
 const sqlite3_1 = require("sqlite3");
 class SqliteStorageManager {
     constructor(filename) {
+        this.data = {};
         this.filename = filename;
     }
     async init() {
@@ -20,6 +21,8 @@ class SqliteStorageManager {
         `);
     }
     async loadData(type) {
+        if (this.db == null)
+            throw new Error("Database not initialized!");
         const resources = await this.db.all(`SELECT * FROM store`);
         this.data = {};
         const allData = [];
@@ -31,6 +34,8 @@ class SqliteStorageManager {
         return allData;
     }
     async removeData(hash) {
+        if (this.db == null)
+            throw new Error("Database not initialized!");
         const stmt = await this.db.prepare(`
             DELETE FROM store WHERE id = @id;
         `);
@@ -39,6 +44,8 @@ class SqliteStorageManager {
         });
     }
     async removeDataArr(keys) {
+        if (this.db == null)
+            throw new Error("Database not initialized!");
         const values = {};
         const tags = keys.map((value, index) => {
             const tag = "@id" + index.toString(10).padStart(8, "0");
@@ -51,6 +58,8 @@ class SqliteStorageManager {
         await stmt.run(values);
     }
     async saveData(hash, object) {
+        if (this.db == null)
+            throw new Error("Database not initialized!");
         const stmt = await this.db.prepare(`
             INSERT INTO store (id, value)
             VALUES (@id, @value)

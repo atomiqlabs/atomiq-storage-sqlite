@@ -2,7 +2,7 @@ import { Database } from "sqlite";
 import { IStorageManager, StorageObject } from "@atomiqlabs/base";
 export declare class SqliteStorageManager<T extends StorageObject> implements IStorageManager<T> {
     readonly filename: string;
-    db: Database;
+    db?: Database;
     constructor(filename: string);
     init(): Promise<void>;
     data: {

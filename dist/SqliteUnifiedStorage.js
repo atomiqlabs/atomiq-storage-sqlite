@@ -45,6 +45,8 @@ class SqliteUnifiedStorage {
         `);
     }
     async query(params) {
+        if (this.db == null || this.indexedColumns == null)
+            throw new Error("Database not initialized!");
         const orQuery = [];
         const values = {};
         let counter = 0;
@@ -77,6 +79,8 @@ class SqliteUnifiedStorage {
         return resources;
     }
     async remove(value) {
+        if (this.db == null || this.indexedColumns == null)
+            throw new Error("Database not initialized!");
         const stmt = await this.db.prepare(`
             DELETE FROM swaps WHERE id = @id;
         `);
@@ -90,6 +94,8 @@ class SqliteUnifiedStorage {
         }
     }
     async save(value) {
+        if (this.db == null || this.indexedColumns == null)
+            throw new Error("Database not initialized!");
         const stmt = await this.db.prepare(`
             INSERT INTO swaps (id, ${this.indexedColumns.join(", ")}, data)
             VALUES (@id, ${this.indexedColumns.map(x => "@" + x).join(", ")}, @data)

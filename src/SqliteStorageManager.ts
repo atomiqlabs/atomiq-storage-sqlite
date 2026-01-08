@@ -5,7 +5,7 @@ import {IStorageManager, StorageObject} from "@atomiqlabs/base";
 export class SqliteStorageManager<T extends StorageObject> implements IStorageManager<T> {
 
     readonly filename: string;
-    db: Database;
+    db?: Database;
 
     constructor(filename: string) {
         this.filename = filename;
@@ -24,9 +24,10 @@ export class SqliteStorageManager<T extends StorageObject> implements IStorageMa
         `);
     }
 
-    data: { [p: string]: T };
+    data: { [p: string]: T } = {};
 
     async loadData(type: { new(data: any): T }): Promise<T[]> {
+        if(this.db==null) throw new Error("Database not initialized!");
         const resources = await this.db.all(`SELECT * FROM store`);
         this.data = {};
         const allData: T[] = [];
@@ -39,6 +40,7 @@ export class SqliteStorageManager<T extends StorageObject> implements IStorageMa
     }
 
     async removeData(hash: string): Promise<void> {
+        if(this.db==null) throw new Error("Database not initialized!");
         const stmt = await this.db.prepare(`
             DELETE FROM store WHERE id = @id;
         `);
@@ -48,6 +50,7 @@ export class SqliteStorageManager<T extends StorageObject> implements IStorageMa
     }
 
     async removeDataArr(keys: string[]): Promise<void> {
+        if(this.db==null) throw new Error("Database not initialized!");
         const values: {[name: string]: string} = {};
         const tags = keys.map((value, index) => {
             const tag = "@id"+index.toString(10).padStart(8, "0");
@@ -61,6 +64,7 @@ export class SqliteStorageManager<T extends StorageObject> implements IStorageMa
     }
 
     async saveData(hash: string, object: T): Promise<void> {
+        if(this.db==null) throw new Error("Database not initialized!");
         const stmt = await this.db.prepare(`
             INSERT INTO store (id, value)
             VALUES (@id, @value)
