@@ -12,16 +12,28 @@ const sqliteTypes = {
     boolean: "BOOLEAN"
 }
 
+/**
+ * SQLite-based unified storage with indexed query support.
+ * Uses native SQLite indexes for efficient queries on swap data.
+ */
 export class SqliteUnifiedStorage implements IUnifiedStorage<UnifiedSwapStorageIndexes, UnifiedSwapStorageCompositeIndexes> {
 
+    /** Path to the SQLite database file */
     readonly filename: string;
+    /** SQLite database instance (available after init) */
     db?: Database;
+    /** List of indexed column names */
     indexedColumns?: string[];
 
+    /**
+     * Creates a new SqliteUnifiedStorage instance
+     * @param filename - Path to the SQLite database file
+     */
     constructor(filename: string) {
         this.filename = filename;
     }
 
+    /** @inheritDoc */
     async init(indexes: UnifiedSwapStorageIndexes, compositeIndexes: UnifiedSwapStorageCompositeIndexes): Promise<void> {
         this.db = await open({
             filename: this.filename,
@@ -56,6 +68,7 @@ export class SqliteUnifiedStorage implements IUnifiedStorage<UnifiedSwapStorageI
         `);
     }
 
+    /** @inheritDoc */
     async query(params: Array<Array<QueryParams>>): Promise<Array<UnifiedStoredObject>> {
         if(this.db==null || this.indexedColumns==null) throw new Error("Database not initialized!");
         const orQuery: string[] = [];
@@ -93,6 +106,7 @@ export class SqliteUnifiedStorage implements IUnifiedStorage<UnifiedSwapStorageI
         return resources;
     }
 
+    /** @inheritDoc */
     async remove(value: UnifiedStoredObject): Promise<void> {
         if(this.db==null || this.indexedColumns==null) throw new Error("Database not initialized!");
         const stmt = await this.db.prepare(`
@@ -103,12 +117,14 @@ export class SqliteUnifiedStorage implements IUnifiedStorage<UnifiedSwapStorageI
         });
     }
 
+    /** @inheritDoc */
     async removeAll(values: UnifiedStoredObject[]): Promise<void> {
         for(let value of values) {
             await this.remove(value);
         }
     }
 
+    /** @inheritDoc */
     async save(value: UnifiedStoredObject): Promise<void> {
         if(this.db==null || this.indexedColumns==null) throw new Error("Database not initialized!");
         const stmt = await this.db.prepare(`
@@ -124,6 +140,7 @@ export class SqliteUnifiedStorage implements IUnifiedStorage<UnifiedSwapStorageI
         await stmt.run(stmtKeys);
     }
 
+    /** @inheritDoc */
     async saveAll(values: UnifiedStoredObject[]): Promise<void> {
         for(let val of values) {
             await this.save(val);
