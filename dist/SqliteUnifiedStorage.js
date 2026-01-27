@@ -8,10 +8,19 @@ const sqliteTypes = {
     string: "TEXT",
     boolean: "BOOLEAN"
 };
+/**
+ * SQLite-based unified storage with indexed query support.
+ * Uses native SQLite indexes for efficient queries on swap data.
+ */
 class SqliteUnifiedStorage {
+    /**
+     * Creates a new SqliteUnifiedStorage instance
+     * @param filename - Path to the SQLite database file
+     */
     constructor(filename) {
         this.filename = filename;
     }
+    /** @inheritDoc */
     async init(indexes, compositeIndexes) {
         this.db = await (0, sqlite_1.open)({
             filename: this.filename,
@@ -44,6 +53,7 @@ class SqliteUnifiedStorage {
             ${dbCompositeIndexes.join("\n")}
         `);
     }
+    /** @inheritDoc */
     async query(params) {
         if (this.db == null || this.indexedColumns == null)
             throw new Error("Database not initialized!");
@@ -78,6 +88,7 @@ class SqliteUnifiedStorage {
         const resources = (await stmt.all(values)).map(val => JSON.parse(val.data));
         return resources;
     }
+    /** @inheritDoc */
     async remove(value) {
         if (this.db == null || this.indexedColumns == null)
             throw new Error("Database not initialized!");
@@ -88,11 +99,13 @@ class SqliteUnifiedStorage {
             "@id": value.id
         });
     }
+    /** @inheritDoc */
     async removeAll(values) {
         for (let value of values) {
             await this.remove(value);
         }
     }
+    /** @inheritDoc */
     async save(value) {
         if (this.db == null || this.indexedColumns == null)
             throw new Error("Database not initialized!");
@@ -108,6 +121,7 @@ class SqliteUnifiedStorage {
         this.indexedColumns.forEach(key => stmtKeys["@" + key] = value[key]);
         await stmt.run(stmtKeys);
     }
+    /** @inheritDoc */
     async saveAll(values) {
         for (let val of values) {
             await this.save(val);

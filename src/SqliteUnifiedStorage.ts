@@ -1,10 +1,12 @@
-import {IUnifiedStorage, QueryParams, UnifiedStoredObject} from "@atomiqlabs/sdk-lib";
-import {open, Database} from "sqlite";
-import {Database as sqlite3Database} from "sqlite3";
 import {
+    IUnifiedStorage,
+    QueryParams,
+    UnifiedStoredObject,
     UnifiedSwapStorageCompositeIndexes,
     UnifiedSwapStorageIndexes
-} from "@atomiqlabs/sdk-lib/dist/storage/UnifiedSwapStorage";
+} from "@atomiqlabs/sdk";
+import {open, Database} from "sqlite";
+import {Database as sqlite3Database} from "sqlite3";
 
 const sqliteTypes = {
     number: "INTEGER",
