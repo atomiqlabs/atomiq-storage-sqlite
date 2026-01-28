@@ -24,10 +24,12 @@
   "author": "adambor",
   "license": "ISC",
   "dependencies": {
-    "@atomiqlabs/base": "github:atomiqlabs/atomiq-base#develop",
-    "@atomiqlabs/sdk": "github:atomiqlabs/atomiq-sdk#develop",
     "sqlite": "5.1.1",
     "sqlite3": "5.1.7"
+  },
+  "peerDependencies": {
+    "@atomiqlabs/sdk": ">=8.0.0 <9.0.0",
+    "@atomiqlabs/base": ">=13.0.0 <14.0.0"
   },
   "devDependencies": {
     "@types/node": "22.9.3",
