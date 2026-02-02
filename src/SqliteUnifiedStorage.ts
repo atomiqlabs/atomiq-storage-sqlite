@@ -1,10 +1,12 @@
-import {IUnifiedStorage, QueryParams, UnifiedStoredObject} from "@atomiqlabs/sdk-lib";
-import {open, Database} from "sqlite";
-import {Database as sqlite3Database} from "sqlite3";
 import {
+    IUnifiedStorage,
+    QueryParams,
+    UnifiedStoredObject,
     UnifiedSwapStorageCompositeIndexes,
     UnifiedSwapStorageIndexes
-} from "@atomiqlabs/sdk-lib/dist/storage/UnifiedSwapStorage";
+} from "@atomiqlabs/sdk";
+import {open, Database} from "sqlite";
+import {Database as sqlite3Database} from "sqlite3";
 
 const sqliteTypes = {
     number: "INTEGER",
@@ -12,28 +14,40 @@ const sqliteTypes = {
     boolean: "BOOLEAN"
 }
 
+/**
+ * SQLite-based unified storage with indexed query support.
+ * Uses native SQLite indexes for efficient queries on swap data.
+ */
 export class SqliteUnifiedStorage implements IUnifiedStorage<UnifiedSwapStorageIndexes, UnifiedSwapStorageCompositeIndexes> {
 
+    /** Path to the SQLite database file */
     readonly filename: string;
-    db: Database;
-    indexedColumns: string[];
+    /** SQLite database instance (available after init) */
+    db?: Database;
+    /** List of indexed column names */
+    indexedColumns?: string[];
 
+    /**
+     * Creates a new SqliteUnifiedStorage instance
+     * @param filename - Path to the SQLite database file
+     */
     constructor(filename: string) {
         this.filename = filename;
     }
 
+    /** @inheritDoc */
     async init(indexes: UnifiedSwapStorageIndexes, compositeIndexes: UnifiedSwapStorageCompositeIndexes): Promise<void> {
         this.db = await open({
             filename: this.filename,
             driver: sqlite3Database
         });
 
-        const columns = [];
-        const dbIndexes = [];
+        const columns: string[] = [];
+        const dbIndexes: string[] = [];
         this.indexedColumns = [];
         indexes.forEach(val => {
             if(val.key==="id") return;
-            this.indexedColumns.push(val.key);
+            this.indexedColumns!.push(val.key);
             columns.push(`
                 ${val.key} ${sqliteTypes[val.type]} ${val.nullable ? "NULL" : "NOT NULL"}
             `);
@@ -41,7 +55,7 @@ export class SqliteUnifiedStorage implements IUnifiedStorage<UnifiedSwapStorageI
                 CREATE${val.unique ? " UNIQUE" : ""} INDEX IF NOT EXISTS idx_${val.key} ON swaps(${val.key});
             `);
         });
-        const dbCompositeIndexes = [];
+        const dbCompositeIndexes: string[] = [];
         compositeIndexes.forEach(val => {
             dbCompositeIndexes.push(`
                 CREATE${val.unique ? " UNIQUE" : ""} INDEX IF NOT EXISTS idx_${val.keys.join("_")} ON swaps(${val.keys.join(", ")});
@@ -56,7 +70,9 @@ export class SqliteUnifiedStorage implements IUnifiedStorage<UnifiedSwapStorageI
         `);
     }
 
+    /** @inheritDoc */
     async query(params: Array<Array<QueryParams>>): Promise<Array<UnifiedStoredObject>> {
+        if(this.db==null || this.indexedColumns==null) throw new Error("Database not initialized!");
         const orQuery: string[] = [];
         const values: {[name: string]: any} = {};
 
@@ -92,7 +108,9 @@ export class SqliteUnifiedStorage implements IUnifiedStorage<UnifiedSwapStorageI
         return resources;
     }
 
+    /** @inheritDoc */
     async remove(value: UnifiedStoredObject): Promise<void> {
+        if(this.db==null || this.indexedColumns==null) throw new Error("Database not initialized!");
         const stmt = await this.db.prepare(`
             DELETE FROM swaps WHERE id = @id;
         `);
@@ -101,13 +119,16 @@ export class SqliteUnifiedStorage implements IUnifiedStorage<UnifiedSwapStorageI
         });
     }
 
+    /** @inheritDoc */
     async removeAll(values: UnifiedStoredObject[]): Promise<void> {
         for(let value of values) {
             await this.remove(value);
         }
     }
 
+    /** @inheritDoc */
     async save(value: UnifiedStoredObject): Promise<void> {
+        if(this.db==null || this.indexedColumns==null) throw new Error("Database not initialized!");
         const stmt = await this.db.prepare(`
             INSERT INTO swaps (id, ${this.indexedColumns.join(", ")}, data)
             VALUES (@id, ${this.indexedColumns.map(x => "@"+x).join(", ")}, @data)
@@ -121,6 +142,7 @@ export class SqliteUnifiedStorage implements IUnifiedStorage<UnifiedSwapStorageI
         await stmt.run(stmtKeys);
     }
 
+    /** @inheritDoc */
     async saveAll(values: UnifiedStoredObject[]): Promise<void> {
         for(let val of values) {
             await this.save(val);

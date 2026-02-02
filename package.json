@@ -1,11 +1,13 @@
 {
   "name": "@atomiqlabs/storage-sqlite",
-  "version": "4.0.0",
+  "version": "5.0.0",
   "description": "SQLite storage implementation for atomiqlabs SDK",
   "main": "./dist/index.js",
   "types:": "./dist/index.d.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build:ts4": "npx -p typescript@4.9 tsc --noEmit",
+    "build:ts5": "npx -p typescript@5.3 tsc --noEmit"
   },
   "files": [
     "/dist",
@@ -22,13 +24,15 @@
   "author": "adambor",
   "license": "ISC",
   "dependencies": {
-    "@atomiqlabs/base": "^12.0.0",
-    "@atomiqlabs/sdk-lib": "^16.0.0",
     "sqlite": "5.1.1",
     "sqlite3": "5.1.7"
   },
+  "peerDependencies": {
+    "@atomiqlabs/sdk": ">=8.0.0 <9.0.0",
+    "@atomiqlabs/base": ">=13.0.0 <14.0.0"
+  },
   "devDependencies": {
     "@types/node": "22.9.3",
-    "typescript": "4.9.5"
+    "typescript": ">=4"
   }
 }
