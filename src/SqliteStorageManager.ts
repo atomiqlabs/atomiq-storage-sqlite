@@ -8,7 +8,7 @@ import {IStorageManager, StorageObject} from "@atomiqlabs/base";
  *
  * @typeParam T - Type of StorageObject to manage
  */
-export class SqliteStorageManager<T extends StorageObject> implements IStorageManager<T> {
+export class SqliteStorageManager<T extends StorageObject = StorageObject> implements IStorageManager<T> {
 
     /** Path to the SQLite database file */
     readonly filename: string;
