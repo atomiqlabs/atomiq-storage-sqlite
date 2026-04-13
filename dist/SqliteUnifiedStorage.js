@@ -57,15 +57,24 @@ class SqliteUnifiedStorage {
     async query(params) {
         if (this.db == null || this.indexedColumns == null)
             throw new Error("Database not initialized!");
-        const orQuery = [];
+        let orQuery = [];
         const values = {};
         let counter = 0;
         for (let orParams of params) {
-            const andQuery = [];
+            // Match all
+            if (orParams.length === 0) {
+                orQuery = [];
+                break;
+            }
+            let andQuery = [];
             for (let andParam of orParams) {
                 if (!this.indexedColumns.includes(andParam.key) && andParam.key !== "id")
                     throw new Error(`Tried to query based on non-indexed column: ${andParam.key}!`);
                 if (Array.isArray(andParam.value)) {
+                    if (andParam.value.length === 0) {
+                        andQuery = ["0=1"];
+                        break;
+                    }
                     const tags = andParam.value.map(value => {
                         const tag = "@" + andParam.key + counter.toString(10).padStart(8, "0");
                         values[tag] = value;
@@ -81,8 +90,15 @@ class SqliteUnifiedStorage {
                     counter++;
                 }
             }
-            orQuery.push("(" + andQuery.join(" AND ") + ")");
+            if (andQuery.length !== 0)
+                orQuery.push("(" + andQuery.join(" AND ") + ")");
         }
+        const impossible = orQuery.length > 0 && orQuery.every(value => value === "(0=1)");
+        if (impossible)
+            return [];
+        orQuery = orQuery.filter(value => value !== "(0=1)");
+        if (orQuery.length === 0)
+            return (await this.db.all(`SELECT * FROM swaps`)).map(val => JSON.parse(val.data));
         const queryToSend = "SELECT * FROM swaps WHERE " + orQuery.join(" OR ");
         const stmt = await this.db.prepare(queryToSend);
         const resources = (await stmt.all(values)).map(val => JSON.parse(val.data));

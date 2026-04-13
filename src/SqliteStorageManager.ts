@@ -68,6 +68,7 @@ export class SqliteStorageManager<T extends StorageObject = StorageObject> imple
     /** @inheritDoc */
     async removeDataArr(keys: string[]): Promise<void> {
         if(this.db==null) throw new Error("Database not initialized!");
+        if(keys.length===0) return;
         const values: {[name: string]: string} = {};
         const tags = keys.map((value, index) => {
             const tag = "@id"+index.toString(10).padStart(8, "0");

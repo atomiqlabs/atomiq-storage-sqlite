@@ -61,6 +61,8 @@ class SqliteStorageManager {
     async removeDataArr(keys) {
         if (this.db == null)
             throw new Error("Database not initialized!");
+        if (keys.length === 0)
+            return;
         const values = {};
         const tags = keys.map((value, index) => {
             const tag = "@id" + index.toString(10).padStart(8, "0");
