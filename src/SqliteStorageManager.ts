@@ -8,7 +8,7 @@ import {IStorageManager, StorageObject} from "@atomiqlabs/base";
  *
  * @typeParam T - Type of StorageObject to manage
  */
-export class SqliteStorageManager<T extends StorageObject> implements IStorageManager<T> {
+export class SqliteStorageManager<T extends StorageObject = StorageObject> implements IStorageManager<T> {
 
     /** Path to the SQLite database file */
     readonly filename: string;
@@ -68,6 +68,7 @@ export class SqliteStorageManager<T extends StorageObject> implements IStorageMa
     /** @inheritDoc */
     async removeDataArr(keys: string[]): Promise<void> {
         if(this.db==null) throw new Error("Database not initialized!");
+        if(keys.length===0) return;
         const values: {[name: string]: string} = {};
         const tags = keys.map((value, index) => {
             const tag = "@id"+index.toString(10).padStart(8, "0");
